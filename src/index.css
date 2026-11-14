@@ -596,4 +596,7 @@ img {
 .error-page p {
     color: #d5d8e5;
 }
-
+.filter-fields {
+    display: flex;
+    gap: 15px;
+}

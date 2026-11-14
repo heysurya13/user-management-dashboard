@@ -17,12 +17,15 @@ function Userlist() {
     const [company, setCompany] = useState("")
     const [currentPage, setCurrentPage] = useState(1)
     const [retry, setRetry] = useState(0)
+    const [favorites, setFavorites] = useState<number[]>(() => {
+    const savedFavorites = localStorage.getItem("favorites")
+    return savedFavorites ? JSON.parse(savedFavorites) : []
+    })
+    const [showFavorites, setShowFavorites] = useState(false)
     const usersPerPage = 5
-    // Debouncing
     const debouncedSearch = useDebounce(search, 400)
     const debouncedCity = useDebounce(city, 400)
     const debouncedCompany = useDebounce(company, 400)
-    // Fetch users
     useEffect(() => {
         async function fetchUsers() {
             try {
@@ -44,18 +47,21 @@ function Userlist() {
     }, [retry])
     useEffect(() => {
         setCurrentPage(1)
-    }, [debouncedSearch, debouncedCity, debouncedCompany])
+    }, [debouncedSearch, debouncedCity, debouncedCompany, showFavorites])
     const filteredUsers = useMemo(() => {
-        return users.filter((user) =>
-            (
-                user.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                user.username.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                user.email.toLowerCase().includes(debouncedSearch.toLowerCase())
-            ) &&
-            user.address.city.toLowerCase().includes(debouncedCity.toLowerCase()) &&
-            user.company.name.toLowerCase().includes(debouncedCompany.toLowerCase())
-        )
-    }, [users, debouncedSearch, debouncedCity, debouncedCompany])
+    return users.filter((user) =>
+        (
+            !showFavorites || favorites.includes(user.id)
+        ) &&
+        (
+            user.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+            user.username.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+            user.email.toLowerCase().includes(debouncedSearch.toLowerCase())
+        ) &&
+        user.address.city.toLowerCase().includes(debouncedCity.toLowerCase()) &&
+        user.company.name.toLowerCase().includes(debouncedCompany.toLowerCase())
+    )
+}, [users, debouncedSearch, debouncedCity, debouncedCompany, favorites, showFavorites])
     const sortedUsers = useMemo(() => {
         const result = [...filteredUsers]
         if (sortBy !== "") {
@@ -100,6 +106,17 @@ function Userlist() {
         setLoading(true)
         setRetry((previousRetry) => previousRetry + 1)
     }, [])
+    const handleFavorite = (id: number) => {
+    let updatedFavorites
+    if (favorites.includes(id)) {
+        updatedFavorites = favorites.filter((favoriteId) => favoriteId !== id)
+    }
+    else {
+        updatedFavorites = [...favorites, id]
+    }
+    setFavorites(updatedFavorites)
+    localStorage.setItem("favorites", JSON.stringify(updatedFavorites))
+    }
     if (loading) {
         return <h2>Loading Users...</h2>
     }
@@ -135,6 +152,9 @@ function Userlist() {
                 company={company}
                 setCompany={handleCompany}
             />
+            <button onClick={() => setShowFavorites(!showFavorites)}>
+                {showFavorites ? "Show All Users" : "Show Favorites"}
+            </button>
             </div>
             <div className="sorting-fields">
             <Sorting
@@ -155,6 +175,7 @@ function Userlist() {
                         <th>Website</th>
                         <th>Company</th>
                         <th>City</th>
+                        <th>Favorite</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -172,11 +193,16 @@ function Userlist() {
                                 <td>{user.website}</td>
                                 <td>{user.company.name}</td>
                                 <td>{user.address.city}</td>
+                                <td>
+                                <button onClick={() => handleFavorite(user.id)}>
+                                {favorites.includes(user.id) ? "★" : "☆"}
+                                </button>
+                                </td>
                             </tr>
                         ))
                     ) : (
                         <tr>
-                            <td colSpan={7}>No users found</td>
+                            <td colSpan={8}>No users found</td>
                         </tr>
                     )}
                 </tbody>

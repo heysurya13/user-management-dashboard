@@ -6,7 +6,7 @@ function Filtering({ city, setCity, company, setCompany }: {
     setCompany: (value: string) => void
 }) {
     return (
-        <div>
+        <div className="filter-fields">
             <input
                 type="text"
                 placeholder="Search by city"
